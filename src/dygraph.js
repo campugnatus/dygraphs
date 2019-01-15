@@ -958,7 +958,8 @@ Dygraph.prototype.createPlotKitCanvas_ = function(canvas) {
  * @private
  */
 Dygraph.prototype.createMouseEventElement_ = function() {
-  return this.canvas_;
+  return this.graphDiv;
+  // return this.canvas_;
 };
 
 /**
