@@ -153,6 +153,12 @@ OPTIONS_REFERENCE =  // <JSON>
     "type": "Object",
     "description": "When set, the options from this object are applied to the timeseries closest to the mouse pointer for interactive highlighting. See also 'highlightCallback'. Example: highlightSeriesOpts: { strokeWidth: 3 }."
   },
+  "closestSeriesAlt": {
+    "default": "false",
+    "labels": ["Interactive Elements"],
+    "type": "boolean",
+    "description": "Changes the way the series closest to the mouse pointer is chosen for the purposes of highlight so as to be closer to the way highlighting works when 'highlightSeriesOpts' isn't set."
+  },
   "highlightSeriesBackgroundAlpha": {
     "default": "0.5",
     "labels": ["Interactive Elements"],

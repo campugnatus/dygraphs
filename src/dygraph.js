@@ -1529,6 +1529,42 @@ Dygraph.prototype.findClosestPoint = function(domX, domY) {
 };
 
 /**
+ * Given a row number and a canvas Y coordinate, find the closest point.
+ *
+ * This finds the individual data point across all visible series that's closest
+ * to the supplied Y DOM coordinate among the points sharing the specified row.
+ *
+ * @param {number} closestRow index of the row closest to the mouse pointer
+ * @param {number} domY graph-relative DOM Y coordinate
+ * Returns: {row, seriesName, point}
+ * @private
+ */
+Dygraph.prototype.findClosestPointAlt = function(closestRow, domY) {
+    var closestSetIdx = 0;
+    var closestPoint;
+    var minDy = Infinity;
+    for ( var setIdx = this.layout_.points.length - 1 ; setIdx >= 0 ; --setIdx ) {
+        var set = this.layout_.points[setIdx];
+        var setRow = closestRow - this.getLeftBoundary_(setIdx);
+        var point = set[setRow];
+        if (!utils.isValidPoint(point, true)) continue;
+        var dy = Math.abs(point.canvasy - domY);
+        if (dy < minDy) {
+            minDy = dy;
+            closestSetIdx = setIdx;
+            closestPoint = point;
+        }
+    }
+    var name = this.layout_.setNames[closestSetIdx];
+    return {
+        row: closestRow,
+        seriesName: name,
+        point: closestPoint
+    };
+};
+
+
+/**
  * Given canvas X,Y coordinates, find the touched area in a stacked graph.
  *
  * This first finds the X data point closest to the supplied DOM X coordinate,
@@ -1608,6 +1644,8 @@ Dygraph.prototype.mouseMove_ = function(event) {
     var closest;
     if (this.getBooleanOption("stackedGraph")) {
       closest = this.findStackedPoint(canvasx, canvasy);
+    } else if (this.getOption("closestSeriesAlt")){
+      closest = this.findClosestPointAlt(this.findClosestRow(canvasx), canvasy);
     } else {
       closest = this.findClosestPoint(canvasx, canvasy);
     }
