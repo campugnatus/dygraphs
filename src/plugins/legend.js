@@ -96,6 +96,9 @@ Legend.prototype.select = function(e) {
   var points = e.selectedPoints;
   var row = e.selectedRow;
 
+  if (typeof row === 'undefined')
+      return;
+
   var legendMode = e.dygraph.getOption('legend');
   if (legendMode === 'never') {
     this.legend_div_.style.display = 'none';
