@@ -1121,14 +1121,6 @@ Dygraph.prototype.createDragInterface_ = function() {
 
     // contextB is the same thing as this context object but renamed.
     initializeMouseDown: function(event, g, contextB) {
-      // prevents mouse drags from selecting page text.
-      if (event.preventDefault) {
-        event.preventDefault();  // Firefox, Chrome, etc.
-      } else {
-        event.returnValue = false;  // IE
-        event.cancelBubble = true;
-      }
-
       var canvasPos = utils.findPos(g.canvas_);
       contextB.px = canvasPos.x;
       contextB.py = canvasPos.y;
