@@ -996,7 +996,7 @@ export function pow(base, exp) {
 };
 
 var RGBA_RE = /^rgba?\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})(?:,\s*([01](?:\.\d+)?))?\)$/;
-
+var RGB_HEX_RE = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/;
 /**
  * Helper for toRGB_ which parses strings of the form:
  * rgb(123, 45, 67)
@@ -1005,14 +1005,23 @@ var RGBA_RE = /^rgba?\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})(?:,\s*([01](?:\.\d+)?
  */
 function parseRGBA(rgbStr) {
   var bits = RGBA_RE.exec(rgbStr);
-  if (!bits) return null;
-  var r = parseInt(bits[1], 10),
-      g = parseInt(bits[2], 10),
-      b = parseInt(bits[3], 10);
-  if (bits[4]) {
-    return {r: r, g: g, b: b, a: parseFloat(bits[4])};
+  if (bits) {
+    var r = parseInt(bits[1], 10),
+        g = parseInt(bits[2], 10),
+        b = parseInt(bits[3], 10);
+    if (bits[4]) {
+      return {r: r, g: g, b: b, a: parseFloat(bits[4])};
+    } else {
+      return {r: r, g: g, b: b};
+    }
+  } else if (bits = RGB_HEX_RE.exec(rgbStr)){
+    return {
+      r: parseInt(bits[1], 16),
+      g: parseInt(bits[2], 16),
+      b: parseInt(bits[3], 16),
+    };
   } else {
-    return {r: r, g: g, b: b};
+    return null;
   }
 }
 
