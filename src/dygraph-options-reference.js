@@ -218,6 +218,15 @@ OPTIONS_REFERENCE =  // <JSON>
       ["col", "The column of the data from which this point comes. g.getValue(row, col) will return the original y-value for this point. This can be used to get the full confidence interval for the point, or access un-rolled values for the point."]
     ]
   },
+  "forceValueType": {
+    "default": "false",
+    "labels": ["Value display/formatting"],
+    "type": "string",
+    "description": "Force dygraph to parse X-axis values in a specified way instead of trying to guess",
+    "parameters": [
+      ["type", "Right now can only have value of 'seconds' to recognize the numbers given as seconds since epoch"]
+    ]
+  },
   "annotationMouseOverHandler": {
     "default": "null",
     "labels": ["Annotations"],

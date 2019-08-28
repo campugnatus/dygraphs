@@ -2868,7 +2868,28 @@ Dygraph.prototype.parseArray_ = function(data) {
     }
   }
 
-  if (utils.isDateLike(data[0][0])) {
+  if (this.getOptionForAxis("forceValueType", "x") === "seconds") {
+    // Some intelligent defaults for a date x-axis.
+    this.attrs_.axes.x.valueFormatter = utils.dateValueFormatter;
+    this.attrs_.axes.x.ticker = DygraphTickers.dateTicker;
+    this.attrs_.axes.x.axisLabelFormatter = utils.dateAxisLabelFormatter;
+
+    // Assume they're all dates.
+    var parsedData = utils.clone(data);
+    for (i = 0; i < data.length; i++) {
+      if (parsedData[i].length === 0) {
+        console.error("Row " + (1 + i) + " of data is empty");
+        return null;
+      }
+      if (typeof parsedData[i][0] !== 'number') {
+        console.error("x value in row " + (1 + i) + " is not a number");
+        return null;
+      }
+      parsedData[i][0] = parsedData[i][0] * 1000;
+    }
+    return parsedData;
+  }
+  else if (utils.isDateLike(data[0][0])) {
     // Some intelligent defaults for a date x-axis.
     this.attrs_.axes.x.valueFormatter = utils.dateValueFormatter;
     this.attrs_.axes.x.ticker = DygraphTickers.dateTicker;
