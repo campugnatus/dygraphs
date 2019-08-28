@@ -1156,6 +1156,8 @@ Dygraph.prototype.createDragInterface_ = function() {
   // Self is the graph.
   var self = this;
 
+  this.context = context; // why only pass it through closure? I need it elsewhere
+
   // Function that binds the graph and context to the handler.
   var bindHandler = function(handler) {
     return function(event) {
@@ -1622,6 +1624,12 @@ Dygraph.prototype.findStackedPoint = function(domX, domY) {
  * @private
  */
 Dygraph.prototype.mouseMove_ = function(event) {
+  if (this.context.isPanning || this.context.isZooming) {
+    // Disable highlights during movement. Too expensive. The highlights aren't
+    // visible, anyway (dunno why)
+    return;
+  }
+
   // This prevents JS errors when mousing over the canvas before data loads.
   var points = this.layout_.points;
   if (points === undefined || points === null) return;
