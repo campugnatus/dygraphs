@@ -27,8 +27,17 @@ import * as utils from '../dygraph-utils';
  * It does _not_ draw the grid lines which span the entire chart.
  */
 var axes = function() {
-  this.xlabels_ = [];
-  this.ylabels_ = [];
+  this.labels = {
+    x: [],
+    y: [],
+    y2: []
+  };
+
+  this.labelsUsed = {
+    x: 0,
+    y: 0,
+    y2: 0
+  };
 };
 
 axes.prototype.toString = function() {
@@ -76,21 +85,59 @@ axes.prototype.layout = function(e) {
 };
 
 axes.prototype.detachLabels = function() {
-  function removeArray(ary) {
-    for (var i = 0; i < ary.length; i++) {
-      var el = ary[i];
-      if (el.parentNode) el.parentNode.removeChild(el);
-    }
-  }
-
-  removeArray(this.xlabels_);
-  removeArray(this.ylabels_);
-  this.xlabels_ = [];
-  this.ylabels_ = [];
+  this.labelsUsed.x = 0;
+  this.labelsUsed.y = 0;
+  this.labelsUsed.y2 = 0;
 };
 
 axes.prototype.clearChart = function(e) {
   this.detachLabels();
+};
+
+axes.prototype.getDiv = function(axis) {
+  if (this.labelsUsed[axis] < this.labels[axis].length) {
+    return this.labels[axis][this.labelsUsed[axis]++];
+  } else {
+    return null;
+  }
+}
+
+axes.prototype.updateDiv = function(div, axis, label, g) {
+  // dygraph options can change at any moment, so we have to fetch and apply
+  // them every frame
+
+  div.style.fontSize = g.getOptionForAxis('axisLabelFontSize', axis) + 'px';
+  div.width = g.getOptionForAxis('axisLabelWidth', axis) + 'px';
+  div.style.display = "block";
+  div.innerText = label;
+};
+
+axes.prototype.hideUnused = function(axis) {
+  var label;
+  while (label = this.getDiv(axis)) {
+    label.style.display = "none";
+  }
+}
+
+axes.prototype.makeDiv = function(axis, container) {
+  // axis can be: x, y, y2
+  var div = document.createElement('div');
+  div.style.position = 'absolute';
+
+  div.className += ' dygraph-axis-label';
+  if (axis !== 'x') {
+    div.className += ' dygraph-axis-label-' + axis;
+  }
+
+  if (axis === 'x') {
+    div.style.textAlign = 'center';
+  }
+
+  container.appendChild(div);
+  this.labels[axis].push(div);
+  this.labelsUsed[axis]++;
+
+  return div;
 };
 
 axes.prototype.willDrawChart = function(e) {
@@ -111,42 +158,6 @@ axes.prototype.willDrawChart = function(e) {
   var canvasWidth = g.width_;  // e.canvas.width is affected by pixel ratio.
   var canvasHeight = g.height_;
 
-  var label, x, y, tick, i;
-
-  var makeLabelStyle = function(axis) {
-    return {
-      position: 'absolute',
-      fontSize: g.getOptionForAxis('axisLabelFontSize', axis) + 'px',
-      width: g.getOptionForAxis('axisLabelWidth', axis) + 'px',
-    };
-  };
-
-  var labelStyles = {
-    x: makeLabelStyle('x'),
-    y: makeLabelStyle('y'),
-    y2: makeLabelStyle('y2')
-  };
-
-  var makeDiv = function(txt, axis, prec_axis) {
-    /*
-     * This seems to be called with the following three sets of axis/prec_axis:
-     * x: undefined
-     * y: y1
-     * y: y2
-     */
-    var div = document.createElement('div');
-    var labelStyle = labelStyles[prec_axis == 'y2' ? 'y2' : axis];
-    utils.update(div.style, labelStyle);
-    // TODO: combine outer & inner divs
-    var inner_div = document.createElement('div');
-    inner_div.className = 'dygraph-axis-label' +
-                          ' dygraph-axis-label-' + axis +
-                          (prec_axis ? ' dygraph-axis-label-' + prec_axis : '');
-    inner_div.innerHTML = txt;
-    div.appendChild(inner_div);
-    return div;
-  };
-
   // axis lines
   context.save();
 
@@ -166,18 +177,18 @@ axes.prototype.willDrawChart = function(e) {
       var getOptions = [makeOptionGetter('y'), makeOptionGetter('y2')];
       layout.yticks.forEach(tick => {
         if (tick.label === undefined) return;  // this tick only has a grid line.
-        x = area.x;
+        var x = area.x;
         var sgn = 1;
-        var prec_axis = 'y1';
+        var axis = 'y';
         var getAxisOption = getOptions[0];
         if (tick.axis == 1) {  // right-side y-axis
           x = area.x + area.w;
           sgn = -1;
-          prec_axis = 'y2';
+          axis = 'y2';
           getAxisOption = getOptions[1];
         }
         var fontSize = getAxisOption('axisLabelFontSize');
-        y = area.y + tick.pos * area.h;
+        var y = area.y + tick.pos * area.h;
 
         /* Tick marks are currently clipped, so don't bother drawing them.
         context.beginPath();
@@ -187,7 +198,9 @@ axes.prototype.willDrawChart = function(e) {
         context.stroke();
         */
 
-        label = makeDiv(tick.label, 'y', num_axes == 2 ? prec_axis : null);
+        var label = this.getDiv(axis) || this.makeDiv(axis, containerDiv);
+        this.updateDiv(label, axis, tick.label, g);
+
         var top = (y - fontSize / 2);
         if (top < 0) top = 0;
 
@@ -205,15 +218,12 @@ axes.prototype.willDrawChart = function(e) {
                               getAxisOption('axisTickSize')) + 'px';
           label.style.textAlign = 'left';
         }
-        label.style.width = getAxisOption('axisLabelWidth') + 'px';
-        containerDiv.appendChild(label);
-        this.ylabels_.push(label);
       });
 
       // The lowest tick on the y-axis often overlaps with the leftmost
       // tick on the x-axis. Shift the bottom tick up a little bit to
       // compensate if necessary.
-      var bottomTick = this.ylabels_[0];
+      var bottomTick = this.labels.y[0];
       // Interested in the y2 axis also?
       var fontSize = g.getOptionForAxis('axisLabelFontSize', 'y');
       var bottom = parseInt(bottomTick.style.top, 10) + fontSize;
@@ -259,8 +269,8 @@ axes.prototype.willDrawChart = function(e) {
       var getAxisOption = makeOptionGetter('x');
       layout.xticks.forEach(tick => {
         if (tick.label === undefined) return;  // this tick only has a grid line.
-        x = area.x + tick.pos * area.w;
-        y = area.y + area.h;
+        var x = area.x + tick.pos * area.w;
+        var y = area.y + area.h;
 
         /* Tick marks are currently clipped, so don't bother drawing them.
         context.beginPath();
@@ -270,13 +280,14 @@ axes.prototype.willDrawChart = function(e) {
         context.stroke();
         */
 
-        label = makeDiv(tick.label, 'x');
-        label.style.textAlign = 'center';
-        label.style.top = (y + getAxisOption('axisTickSize')) + 'px';
+        var axisLabelWidth = getAxisOption('axisLabelWidth');
 
-        var left = (x - getAxisOption('axisLabelWidth')/2);
-        if (left + getAxisOption('axisLabelWidth') > canvasWidth) {
-          left = canvasWidth - getAxisOption('axisLabelWidth');
+        var label = this.getDiv('x') || this.makeDiv('x', containerDiv);
+        this.updateDiv(label, 'x', tick.label, g);
+
+        var left = (x - axisLabelWidth/2);
+        if (left + axisLabelWidth > canvasWidth) {
+          left = canvasWidth - axisLabelWidth;
           label.style.textAlign = 'right';
         }
         if (left < 0) {
@@ -285,9 +296,7 @@ axes.prototype.willDrawChart = function(e) {
         }
 
         label.style.left = left + 'px';
-        label.style.width = getAxisOption('axisLabelWidth') + 'px';
-        containerDiv.appendChild(label);
-        this.xlabels_.push(label);
+        label.style.top = (y + getAxisOption('axisTickSize')) + 'px';
       });
     }
 
@@ -307,6 +316,10 @@ axes.prototype.willDrawChart = function(e) {
     context.closePath();
     context.stroke();
   }
+
+  this.hideUnused('x');
+  this.hideUnused('y');
+  this.hideUnused('y2');
 
   context.restore();
 };
